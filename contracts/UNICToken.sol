@@ -117,6 +117,7 @@ contract UNICToken is owned, StandardToken {
     
     mapping (address => uint256) public WhiteList;
     mapping (address => uint256) public Female;
+    mapping (address => uint256) public KYC;
 
     modifier onlyManager() {
         require(msg.sender == icoManager);
@@ -150,6 +151,27 @@ contract UNICToken is owned, StandardToken {
           Female[dests[i]] = 1;
           WhiteList[dests[i]] = 1;
         }
+        i++;
+      }
+    }
+
+    function setKYCMail(address[] dests) onlyOwner external {
+      uint256 i = 0;
+      while (i < dests.length) {
+        if(dests[i] != 0x0){
+          KYC[dests[i]] = 1;
+        }
+        i++;
+      }
+    }
+
+    function setKYCDoc(address[] dests) onlyOwner external {
+      uint256 i = 0;
+      while (i < dests.length) {
+        if(dests[i] != 0x0){
+          KYC[dests[i]] = 2;
+        }
+        i++;
       }
     }
     
@@ -241,53 +263,55 @@ contract Crowdsale is owned, UNICToken {
   function buyTokens(address _buyer) saleIsOn public payable {
     assert(_buyer != 0x0);
     if(msg.value > 0){
-
-      uint tokens = rate.mul(msg.value).div(1 ether);
-      uint discountTokens = 0;
-      if(now >= presaleStart && now <= presaleEnd) {
-          discountTokens = tokens.mul(presaleDiscount).div(100);
+      if((msg.value >= 1.5 ether && KYC[_buyer]==2) || (msg.value < 1.5 ether && KYC[_buyer]==1)){
+    
+        uint tokens = rate.mul(msg.value).div(1 ether);
+        uint discountTokens = 0;
+        if(now >= presaleStart && now <= presaleEnd) {
+            discountTokens = tokens.mul(presaleDiscount).div(100);
+            if(WhiteList[_buyer]==1) {
+                discountTokens = tokens.mul(presaleWhitelistDiscount).div(100);
+            }
+            if(now >= presaleFemaleStart && now <= presaleFemaleEnd && Female[_buyer]==1) {
+                discountTokens = tokens.mul(presaleFemaleDiscount).div(100);
+            }
+            if(now >= presalePiStart && now <= presalePiEnd) {
+                discountTokens = tokens.mul(presalePiDiscount).div(100);
+            }
+        }
+        if(now >= firstRoundICOStart && now <= firstRoundICOEnd) {
+            discountTokens = tokens.mul(firstRoundICODiscount).div(100);
+            if(now >= presaleWMStart && now <= presaleWMEnd) {
+                discountTokens = tokens.mul(presaleWMDiscount).div(100);
+            }
+            if(now >= presaleCosmosStart && now <= presaleCosmosEnd) {
+                discountTokens = tokens.mul(presaleCosmosDiscount).div(100);
+            }
+        }
+        if(now >= secondRoundICOStart && now <= secondRoundICOEnd) {
+            discountTokens = tokens.mul(secondRoundICODiscount).div(100);
+            if(now >= presaleMayStart && now <= presaleMayEnd) {
+                discountTokens = tokens.mul(presaleMayDiscount).div(100);
+            }
+        }
+      
+        uint tokensWithBonus = tokens.add(discountTokens);
+      
+        if(
+            (now >= presaleStart && now <= presaleEnd && presaleTokensLimit > tokensSold + tokensWithBonus &&
+              ((WhiteList[_buyer]==1 && presaleWhitelistTokensLimit > tokensSoldWhitelist + tokensWithBonus) || WhiteList[_buyer]!=1)
+            ) ||
+            (now >= firstRoundICOStart && now <= firstRoundICOEnd && firstRoundICOTokensLimit > tokensSold + tokensWithBonus) ||
+            (now >= secondRoundICOStart && now <= secondRoundICOEnd && secondRoundICOTokensLimit > tokensSold + tokensWithBonus)
+        ){
+      
+          multisig.transfer(msg.value);
+          etherRaised = etherRaised.add(msg.value);
+          token.transfer(msg.sender, tokensWithBonus);
+          tokensSold = tokensSold.add(tokensWithBonus);
           if(WhiteList[_buyer]==1) {
-              discountTokens = tokens.mul(presaleWhitelistDiscount).div(100);
+            tokensSoldWhitelist = tokensSoldWhitelist.add(tokensWithBonus);
           }
-          if(now >= presaleFemaleStart && now <= presaleFemaleEnd && Female[_buyer]==1) {
-              discountTokens = tokens.mul(presaleFemaleDiscount).div(100);
-          }
-          if(now >= presalePiStart && now <= presalePiEnd) {
-              discountTokens = tokens.mul(presalePiDiscount).div(100);
-          }
-      }
-      if(now >= firstRoundICOStart && now <= firstRoundICOEnd) {
-          discountTokens = tokens.mul(firstRoundICODiscount).div(100);
-          if(now >= presaleWMStart && now <= presaleWMEnd) {
-              discountTokens = tokens.mul(presaleWMDiscount).div(100);
-          }
-          if(now >= presaleCosmosStart && now <= presaleCosmosEnd) {
-              discountTokens = tokens.mul(presaleCosmosDiscount).div(100);
-          }
-      }
-      if(now >= secondRoundICOStart && now <= secondRoundICOEnd) {
-          discountTokens = tokens.mul(secondRoundICODiscount).div(100);
-          if(now >= presaleMayStart && now <= presaleMayEnd) {
-              discountTokens = tokens.mul(presaleMayDiscount).div(100);
-          }
-      }
-      
-      uint tokensWithBonus = tokens.add(discountTokens);
-      
-      if(
-          (now >= presaleStart && now <= presaleEnd && presaleTokensLimit > tokensSold + tokensWithBonus &&
-            ((WhiteList[_buyer]==1 && presaleWhitelistTokensLimit > tokensSoldWhitelist + tokensWithBonus) || WhiteList[_buyer]!=1)
-          ) ||
-          (now >= firstRoundICOStart && now <= firstRoundICOEnd && firstRoundICOTokensLimit > tokensSold + tokensWithBonus) ||
-          (now >= secondRoundICOStart && now <= secondRoundICOEnd && secondRoundICOTokensLimit > tokensSold + tokensWithBonus)
-      ){
-      
-        multisig.transfer(msg.value);
-        etherRaised = etherRaised.add(msg.value);
-        token.transfer(msg.sender, tokensWithBonus);
-        tokensSold = tokensSold.add(tokensWithBonus);
-        if(WhiteList[_buyer]==1) {
-          tokensSoldWhitelist = tokensSoldWhitelist.add(tokensWithBonus);
         }
       }
     }
