@@ -131,6 +131,7 @@ contract UNICToken is owned, StandardToken {
     function setICOManager(address _newIcoManager) public onlyOwner returns (bool) {
       assert(_newIcoManager != 0x0);
       icoManager = _newIcoManager;
+      return true;
     }
     
     function setWhiteList(address _contributor) public onlyManager {
