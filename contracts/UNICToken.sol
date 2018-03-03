@@ -133,17 +133,23 @@ contract UNICToken is owned, StandardToken {
       icoManager = _newIcoManager;
       return true;
     }
-    
-    function setWhiteList(address _contributor) public onlyManager {
-      if(_contributor != 0x0){
-        WhiteList[_contributor] = 1;
+
+    function setWhiteList(address[] dests) onlyOwner external {
+      uint256 i = 0;
+      while (i < dests.length) {
+        if(dests[i] != 0x0){
+          WhiteList[dests[i]] = 1;
+        }
       }
     }
 
-    function setFemaleBonus(address _contributor) public onlyManager {
-      if(_contributor != 0x0){
-        Female[_contributor] = 1;
-        WhiteList[_contributor] = 1;
+    function setFemaleBonus(address[] dests) onlyOwner external {
+      uint256 i = 0;
+      while (i < dests.length) {
+        if(dests[i] != 0x0){
+          Female[dests[i]] = 1;
+          WhiteList[dests[i]] = 1;
+        }
       }
     }
     
@@ -151,7 +157,9 @@ contract UNICToken is owned, StandardToken {
       uint256 i = 0;
       uint256 toSend = value * 10**18;
       while (i < dests.length) {
-        transfer(dests[i], toSend);
+        if(dests[i] != 0x0){
+          transfer(dests[i], toSend);
+        }
         i++;
       }
     } 
