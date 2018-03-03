@@ -141,6 +141,7 @@ contract UNICToken is owned, StandardToken {
         if(dests[i] != 0x0){
           WhiteList[dests[i]] = 1;
         }
+        i++;
       }
     }
 
