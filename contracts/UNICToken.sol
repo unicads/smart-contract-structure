@@ -199,28 +199,28 @@ contract Crowdsale is owned, UNICToken {
 
   uint public constant presaleFemaleStart = 1520467200;       /** 08.03 */
   uint public constant presaleFemaleEnd = 1520553600;         /** 09.03 */
-  uint public constant presaleFemaleDiscount = 60;
+  uint public constant presaleFemaleDiscount = 88;
   uint public presaleFemaleTokensLimit = 88888 * 10 ** uint256(decimals);  
 
   uint public constant presalePiStart = 1520985600;           /** 14.03 The day of number PI */
   uint public constant presalePiEnd = 1521072000;             /** 15.03 */
   uint public constant presalePiDiscount = 34;
-  uint public presalePiTokensLimit = 314159 * 10 ** uint256(decimals);
+  uint public presalePiTokensLimit = 31415.926535897932384626 * 10 ** uint256(decimals);
 
   uint public constant presaleWMStart = 1522800000;           /** 04.04 The Day of webmaster 404 */
   uint public constant presaleWMEnd = 1522886400;             /** 05.04 */
-  uint public constant presaleWMDiscount = 24;
-  uint public presaleWMTokensLimit = 404000 * 10 ** uint256(decimals);
+  uint public constant presaleWMDiscount = 25;
+  uint public presaleWMTokensLimit = 404404 * 10 ** uint256(decimals);
 
   uint public constant presaleCosmosStart = 1523491200;       /** 12.04 The day of cosmonautics */
   uint public constant presaleCosmosEnd = 1523577600;         /** 13.04 */
-  uint public constant presaleCosmosDiscount = 24;
+  uint public constant presaleCosmosDiscount = 25;
   uint public presaleCosmosTokensLimit = 121961 * 10 ** uint256(decimals);
 
   uint public constant presaleMayStart = 1525132800;          /** 01.05 International Solidarity Day for Workers */
   uint public constant presaleMayEnd = 1525219200;            /** 02.05 */
   uint public constant presaleMayDiscount = 15;
-  uint public presaleMayTokensLimit = 111111 * 10 ** uint256(decimals);
+  uint public presaleMayTokensLimit = 1111111 * 10 ** uint256(decimals);
 
 /* </Marketing> */
 
