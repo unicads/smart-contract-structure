@@ -223,7 +223,7 @@ contract Crowdsale is owned, UNICToken {
   uint public constant presalePiStart = 1520985600;           /** 14.03 The day of number PI */
   uint public constant presalePiEnd = 1521072000;             /** 15.03 */
   uint public constant presalePiDiscount = 34;
-  uint public presalePiTokensLimit = 31415.926535897932384626 * 10 ** uint256(decimals);
+  uint public presalePiTokensLimit = 31415926535897932384626;
 
   uint public constant firstRoundWMStart = 1522800000;           /** 04.04 The Day of webmaster 404 */
   uint public constant firstRoundWMEnd = 1522886400;             /** 05.04 */
@@ -269,7 +269,7 @@ contract Crowdsale is owned, UNICToken {
 
     uint tokens = rate.mul(msg.value).div(1 ether);
     uint discountTokens = 0;
-    unit tmpDiscountTokens = 0;
+    uint tmpDiscountTokens = 0;
     
     if(now >= presaleStart && now <= presaleEnd) {
 
