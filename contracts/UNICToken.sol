@@ -79,7 +79,7 @@ contract StandardToken is ERC20, BasicToken {
  
   function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
     require (balances[_from] >= _value && allowed[_from][msg.sender] >= _value && balances[_to] + _value > balances[_to] && _value > 0 && _to != address(this) && _to != address(0));
-    var _allowance = allowed[_from][msg.sender];
+    uint _allowance = allowed[_from][msg.sender];
     balances[_to] = balances[_to].add(_value);
     balances[_from] = balances[_from].sub(_value);
     allowed[_from][msg.sender] = _allowance.sub(_value);
@@ -128,7 +128,7 @@ contract UNICToken is owned, StandardToken {
     }
 
     function setICOManager(address _newIcoManager) public onlyOwner returns (bool) {
-      assert(_newIcoManager != 0x0);
+      require(_newIcoManager != address(0));
       icoManager = _newIcoManager;
       return true;
     }
@@ -136,7 +136,7 @@ contract UNICToken is owned, StandardToken {
     function setWhiteList(address[] dests) onlyManager external {
       uint256 i = 0;
       while (i < dests.length) {
-        if(dests[i] != 0x0){
+        if(dests[i] != address(0)){
           WhiteList[dests[i]] = true;
         }
         i++;
@@ -146,7 +146,7 @@ contract UNICToken is owned, StandardToken {
     function setFemaleBonus(address[] dests) onlyManager external {
       uint256 i = 0;
       while (i < dests.length) {
-        if(dests[i] != 0x0){
+        if(dests[i] != address(0)){
           Females[dests[i]] = true;
         }
         i++;
@@ -156,7 +156,7 @@ contract UNICToken is owned, StandardToken {
     function setKYCLimited(address[] dests) onlyManager external {
       uint256 i = 0;
       while (i < dests.length) {
-        if(dests[i] != 0x0){
+        if(dests[i] != address(0)){
           KYC1[dests[i]] = true;
           KYCLimit[dests[i]] = KYCLimitValue;
         }
@@ -167,7 +167,7 @@ contract UNICToken is owned, StandardToken {
     function setKYCFull(address[] dests) onlyManager external {
       uint256 i = 0;
       while (i < dests.length) {
-        if(dests[i] != 0x0){
+        if(dests[i] != address(0)){
           KYC2[dests[i]] = true;
         }
         i++;
@@ -178,7 +178,7 @@ contract UNICToken is owned, StandardToken {
       uint256 i = 0;
       uint256 toSend = value * 10 ** uint256(decimals);
       while (i < dests.length) {
-        if(dests[i] != 0x0){
+        if(dests[i] != address(0)){
           transfer(dests[i], toSend);
         }
         i++;
@@ -264,7 +264,7 @@ contract Crowdsale is owned, UNICToken {
   }
 
   function buyTokens(address _buyer) saleIsOn public payable {
-    assert((_buyer != 0x0 && msg.value > 0 && ((KYC1[_buyer] && msg.value < KYCLimitValue) || (KYC2[_buyer] && msg.value >= KYCLimitValue))));
+    assert((_buyer != address(0) && msg.value > 0 && ((KYC1[_buyer] && msg.value < KYCLimitValue) || (KYC2[_buyer] && msg.value >= KYCLimitValue))));
     assert((KYC2[_buyer] || (KYC1[_buyer] && msg.value < KYCLimit[_buyer])));
 
     uint tokens = rate.mul(msg.value).div(1 ether);
@@ -274,27 +274,27 @@ contract Crowdsale is owned, UNICToken {
     if(now >= presaleStart && now <= presaleEnd) {
 
       tmpDiscountTokens = tokens.mul(presaleDiscount).div(100);
-      if(presaleTokensLimit > tokens.add(tmpDiscountTokens)) {
+      if(presaleTokensLimit >= tokens.add(tmpDiscountTokens)) {
         discountTokens = tmpDiscountTokens;
+      }
+
+      if(now >= presalePiStart && now <= presalePiEnd) {
+        tmpDiscountTokens = tokens.mul(presalePiDiscount).div(100);
+        if(presalePiTokensLimit >= tokens.add(tmpDiscountTokens) && presaleTokensLimit >= tokens.add(tmpDiscountTokens)) {
+          discountTokens = tmpDiscountTokens;
+        }
       }
 
       if(WhiteList[_buyer]) {
         tmpDiscountTokens = tokens.mul(presaleWhitelistDiscount).div(100);
-        if(presaleWhitelistTokensLimit > tokens.add(tmpDiscountTokens) && presaleTokensLimit > tokens.add(tmpDiscountTokens)) {
+        if(presaleWhitelistTokensLimit >= tokens.add(tmpDiscountTokens) && presaleTokensLimit >= tokens.add(tmpDiscountTokens)) {
           discountTokens = tmpDiscountTokens;
         }
       }
 
       if(now >= presaleFemaleStart && now <= presaleFemaleEnd && Females[_buyer]) {
         tmpDiscountTokens = tokens.mul(presaleFemaleDiscount).div(100);
-        if(presaleFemaleTokensLimit > tokens.add(tmpDiscountTokens) && presaleTokensLimit > tokens.add(tmpDiscountTokens)) {
-          discountTokens = tmpDiscountTokens;
-        }
-      }
-
-      if(now >= presalePiStart && now <= presalePiEnd) {
-        tmpDiscountTokens = tokens.mul(presalePiDiscount).div(100);
-        if(presalePiTokensLimit > tokens.add(tmpDiscountTokens) && presaleTokensLimit > tokens.add(tmpDiscountTokens)) {
+        if(presaleFemaleTokensLimit >= tokens.add(tmpDiscountTokens) && presaleTokensLimit >= tokens.add(tmpDiscountTokens)) {
           discountTokens = tmpDiscountTokens;
         }
       }
@@ -304,20 +304,20 @@ contract Crowdsale is owned, UNICToken {
     if(now >= firstRoundICOStart && now <= firstRoundICOEnd) {
 
       tmpDiscountTokens = tokens.mul(firstRoundICODiscount).div(100);
-      if(firstRoundICOTokensLimit > tokens.add(tmpDiscountTokens)) {
+      if(firstRoundICOTokensLimit >= tokens.add(tmpDiscountTokens)) {
         discountTokens = tmpDiscountTokens;
       }
 
       if(now >= firstRoundWMStart && now <= firstRoundWMEnd) {
         tmpDiscountTokens = tokens.mul(firstRoundWMDiscount).div(100);
-        if(firstRoundWMTokensLimit > tokens.add(tmpDiscountTokens) && firstRoundICOTokensLimit > tokens.add(tmpDiscountTokens)) {
+        if(firstRoundWMTokensLimit >= tokens.add(tmpDiscountTokens) && firstRoundICOTokensLimit >= tokens.add(tmpDiscountTokens)) {
           discountTokens = tmpDiscountTokens;
         }
       }
 
       if(now >= firstRoundCosmosStart && now <= firstRoundCosmosEnd) {
         tmpDiscountTokens = tokens.mul(firstRoundCosmosDiscount).div(100);
-        if(firstRoundCosmosTokensLimit > tokens.add(tmpDiscountTokens) && firstRoundICOTokensLimit > tokens.add(tmpDiscountTokens)) {
+        if(firstRoundCosmosTokensLimit >= tokens.add(tmpDiscountTokens) && firstRoundICOTokensLimit >= tokens.add(tmpDiscountTokens)) {
           discountTokens = tmpDiscountTokens;
         }
       }
@@ -327,13 +327,13 @@ contract Crowdsale is owned, UNICToken {
     if(now >= secondRoundICOStart && now <= secondRoundICOEnd) {
 
       tmpDiscountTokens = tokens.mul(secondRoundICODiscount).div(100);
-      if(secondRoundICOTokensLimit > tokens.add(tmpDiscountTokens)) {
+      if(secondRoundICOTokensLimit >= tokens.add(tmpDiscountTokens)) {
         discountTokens = tmpDiscountTokens;
       }
           
       if(now >= secondRoundMayStart && now <= secondRoundMayEnd) {
         tmpDiscountTokens = tokens.mul(secondRoundMayDiscount).div(100);
-        if(secondRoundMayTokensLimit > tokens.add(tmpDiscountTokens) && secondRoundICOTokensLimit > tokens.add(tmpDiscountTokens)) {
+        if(secondRoundMayTokensLimit >= tokens.add(tmpDiscountTokens) && secondRoundICOTokensLimit >= tokens.add(tmpDiscountTokens)) {
           discountTokens = tmpDiscountTokens;
         }
       }
