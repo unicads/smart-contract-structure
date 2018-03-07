@@ -133,48 +133,42 @@ contract UNICToken is owned, StandardToken {
       return true;
     }
 
-    function setWhiteList(address[] dests) onlyManager external {
+    function setParams(address[] dests, uint _type) internal {
       uint256 i = 0;
       while (i < dests.length) {
         if(dests[i] != address(0)){
-          WhiteList[dests[i]] = true;
+          if(_type==1){
+            WhiteList[dests[i]] = true;
+          }else if(_type==2){
+            Females[dests[i]] = true;
+          }else if(_type==3){
+            KYC1[dests[i]] = true;
+            KYCLimit[dests[i]] = KYCLimitValue;
+          }else if(_type==4){
+            KYC2[dests[i]] = true;
+          }
         }
         i++;
       }
+    } 
+
+    function setWhiteList(address[] dests) onlyManager external {
+      setParams(dests, 1);
     }
 
     function setFemaleBonus(address[] dests) onlyManager external {
-      uint256 i = 0;
-      while (i < dests.length) {
-        if(dests[i] != address(0)){
-          Females[dests[i]] = true;
-        }
-        i++;
-      }
+      setParams(dests, 2);
     }
 
     function setKYCLimited(address[] dests) onlyManager external {
-      uint256 i = 0;
-      while (i < dests.length) {
-        if(dests[i] != address(0)){
-          KYC1[dests[i]] = true;
-          KYCLimit[dests[i]] = KYCLimitValue;
-        }
-        i++;
-      }
+      setParams(dests, 3);
     }
 
     function setKYCFull(address[] dests) onlyManager external {
-      uint256 i = 0;
-      while (i < dests.length) {
-        if(dests[i] != address(0)){
-          KYC2[dests[i]] = true;
-        }
-        i++;
-      }
+      setParams(dests, 4);
     }
     
-    function massPay(address[] dests, uint256 value) onlyManager external {
+    function massPay(address[] dests, uint256 value) public onlyOwner returns (bool) {
       uint256 i = 0;
       uint256 toSend = value * 10 ** uint256(decimals);
       while (i < dests.length) {
@@ -183,7 +177,9 @@ contract UNICToken is owned, StandardToken {
         }
         i++;
       }
-    } 
+      return true;
+    }
+
 }
 
 contract Crowdsale is owned, UNICToken {
@@ -193,12 +189,12 @@ contract Crowdsale is owned, UNICToken {
   UNICToken public token = new UNICToken();
   
   address constant multisig = 0x867570869f8a46c685A51EE87b5D979A6ef657A9;
-  uint constant rate = 3400 * 10 ** uint256(decimals);
+  uint constant rate = 3400;
 
   uint public constant presaleWhitelistDiscount = 40;
   uint public presaleWhitelistTokensLimit = 750000 * 10 ** uint256(decimals);
 
-  uint public constant presaleStart = 1520503200;           /** 08.03 */
+  uint public constant presaleStart = 1514764800; /**1520503200;           /** 08.03 */
   uint public constant presaleEnd = 1521453600;             /** 19.03 */
   uint public constant presaleDiscount = 30;
   uint public presaleTokensLimit = 5000000 * 10 ** uint256(decimals);
@@ -242,21 +238,60 @@ contract Crowdsale is owned, UNICToken {
 
 /* </Marketing> */
 
-  uint public etherRaised;
-  uint public tokensSold;
+  uint public etherRaised = 0;
+  uint public tokensSold = 0;
 
+  function isPresale() internal view returns (bool) {
+    return now >= presaleStart && now <= presaleEnd;
+  }
+
+  function isFirstRound() internal view returns (bool) {
+    return now >= firstRoundICOStart && now <= firstRoundICOEnd;
+  }
+
+  function isSecondRound() internal view returns (bool) {
+    return now >= secondRoundICOStart && now <= secondRoundICOEnd;
+  }
 
   modifier saleIsOn() {
-    require((now >= presaleStart && now <= presaleEnd) ||
-      (now >= firstRoundICOStart && now <= firstRoundICOEnd)
-      || (now >= secondRoundICOStart && now <= secondRoundICOEnd)
-      );
+    require(isPresale() || isFirstRound() || isSecondRound());
     _;
   }
 
+  function isFemaleSale() internal view returns (bool) {
+    return now >= presaleFemaleStart && now <= presaleFemaleEnd;
+  }
+
+  function isPiSale() internal view returns (bool) {
+    return now >= presalePiStart && now <= presalePiEnd;
+  }
+
+  function isWMSale() internal view returns (bool) {
+    return now >= firstRoundWMStart && now <= firstRoundWMEnd;
+  }
+
+  function isCosmosSale() internal view returns (bool) {
+    return now >= firstRoundCosmosStart && now <= firstRoundCosmosEnd;
+  }
+
+  function isMaySale() internal view returns (bool) {
+    return now >= secondRoundMayStart && now <= secondRoundMayEnd;
+  }
+
+
+  function discount(uint _discount, uint _limit, uint _saleLimit, uint _value, uint _defultDiscount) internal pure returns(uint){
+    uint tmpDiscount = _value.mul(_discount).div(100);
+    uint newValue = _value.add(tmpDiscount);
+    if(_limit >= newValue && _saleLimit >= newValue) {
+      return tmpDiscount;
+    }else{
+      return _defultDiscount;
+    }
+  }
+
+
+
   function Crowdsale() public onlyOwner {
-    etherRaised = 0;
-    tokensSold = 0;
   }
   
   function() external payable {
@@ -264,88 +299,52 @@ contract Crowdsale is owned, UNICToken {
   }
 
   function buyTokens(address _buyer) saleIsOn public payable {
-    assert((_buyer != address(0) && msg.value > 0 && ((KYC1[_buyer] && msg.value < KYCLimitValue) || (KYC2[_buyer] && msg.value >= KYCLimitValue))));
+    assert((_buyer != address(0) && msg.value > 0 && ((KYC1[_buyer] && msg.value < KYCLimitValue) || KYC2[_buyer])));
     assert((KYC2[_buyer] || (KYC1[_buyer] && msg.value < KYCLimit[_buyer])));
 
-    uint tokens = rate.mul(msg.value).div(1 ether);
+    uint tokens = rate.mul(msg.value);
     uint discountTokens = 0;
-    uint tmpDiscountTokens = 0;
     
-    if(now >= presaleStart && now <= presaleEnd) {
+    if (isPresale()) {
 
-      tmpDiscountTokens = tokens.mul(presaleDiscount).div(100);
-      if(presaleTokensLimit >= tokens.add(tmpDiscountTokens)) {
-        discountTokens = tmpDiscountTokens;
+      if(isFemaleSale() && Females[_buyer]) {
+        discountTokens = discount(presaleFemaleDiscount, presaleFemaleTokensLimit, presaleTokensLimit, tokens, discountTokens);
+      }else if(WhiteList[_buyer]) {
+        discountTokens = discount(presaleWhitelistDiscount, presaleWhitelistTokensLimit, presaleTokensLimit, tokens, discountTokens);
+      }else if(isPiSale()) {
+        discountTokens = discount(presalePiDiscount, presalePiTokensLimit, presaleTokensLimit, tokens, discountTokens);
+      }else{
+        discountTokens = discount(presaleDiscount, presaleTokensLimit, presaleTokensLimit, tokens, discountTokens);
       }
 
-      if(now >= presalePiStart && now <= presalePiEnd) {
-        tmpDiscountTokens = tokens.mul(presalePiDiscount).div(100);
-        if(presalePiTokensLimit >= tokens.add(tmpDiscountTokens) && presaleTokensLimit >= tokens.add(tmpDiscountTokens)) {
-          discountTokens = tmpDiscountTokens;
-        }
-      }
+    } else if (isFirstRound()) {
 
-      if(WhiteList[_buyer]) {
-        tmpDiscountTokens = tokens.mul(presaleWhitelistDiscount).div(100);
-        if(presaleWhitelistTokensLimit >= tokens.add(tmpDiscountTokens) && presaleTokensLimit >= tokens.add(tmpDiscountTokens)) {
-          discountTokens = tmpDiscountTokens;
-        }
-      }
+      if(isCosmosSale()) {
+        discountTokens = discount(firstRoundCosmosDiscount, firstRoundCosmosTokensLimit, firstRoundICOTokensLimit, tokens, discountTokens);
+      }else if(isWMSale()) {
+        discountTokens = discount(firstRoundWMDiscount, firstRoundWMTokensLimit, firstRoundICOTokensLimit, tokens, discountTokens);
+      }else{
+        discountTokens = discount(firstRoundICODiscount, firstRoundICOTokensLimit, firstRoundICOTokensLimit, tokens, discountTokens);
+      } 
 
-      if(now >= presaleFemaleStart && now <= presaleFemaleEnd && Females[_buyer]) {
-        tmpDiscountTokens = tokens.mul(presaleFemaleDiscount).div(100);
-        if(presaleFemaleTokensLimit >= tokens.add(tmpDiscountTokens) && presaleTokensLimit >= tokens.add(tmpDiscountTokens)) {
-          discountTokens = tmpDiscountTokens;
-        }
+    } else if (isSecondRound()) {
+
+      if(isMaySale()) {
+        discountTokens = discount(secondRoundMayDiscount, secondRoundMayTokensLimit, secondRoundICOTokensLimit, tokens, discountTokens);
+      }else{
+        discountTokens = discount(secondRoundICODiscount, secondRoundICOTokensLimit, secondRoundICOTokensLimit, tokens, discountTokens);
       }
 
     }
-    
-    if(now >= firstRoundICOStart && now <= firstRoundICOEnd) {
+      
 
-      tmpDiscountTokens = tokens.mul(firstRoundICODiscount).div(100);
-      if(firstRoundICOTokensLimit >= tokens.add(tmpDiscountTokens)) {
-        discountTokens = tmpDiscountTokens;
-      }
-
-      if(now >= firstRoundWMStart && now <= firstRoundWMEnd) {
-        tmpDiscountTokens = tokens.mul(firstRoundWMDiscount).div(100);
-        if(firstRoundWMTokensLimit >= tokens.add(tmpDiscountTokens) && firstRoundICOTokensLimit >= tokens.add(tmpDiscountTokens)) {
-          discountTokens = tmpDiscountTokens;
-        }
-      }
-
-      if(now >= firstRoundCosmosStart && now <= firstRoundCosmosEnd) {
-        tmpDiscountTokens = tokens.mul(firstRoundCosmosDiscount).div(100);
-        if(firstRoundCosmosTokensLimit >= tokens.add(tmpDiscountTokens) && firstRoundICOTokensLimit >= tokens.add(tmpDiscountTokens)) {
-          discountTokens = tmpDiscountTokens;
-        }
-      }
-    
-    }
-    
-    if(now >= secondRoundICOStart && now <= secondRoundICOEnd) {
-
-      tmpDiscountTokens = tokens.mul(secondRoundICODiscount).div(100);
-      if(secondRoundICOTokensLimit >= tokens.add(tmpDiscountTokens)) {
-        discountTokens = tmpDiscountTokens;
-      }
-          
-      if(now >= secondRoundMayStart && now <= secondRoundMayEnd) {
-        tmpDiscountTokens = tokens.mul(secondRoundMayDiscount).div(100);
-        if(secondRoundMayTokensLimit >= tokens.add(tmpDiscountTokens) && secondRoundICOTokensLimit >= tokens.add(tmpDiscountTokens)) {
-          discountTokens = tmpDiscountTokens;
-        }
-      }
-    
-    }
       
     uint tokensWithBonus = tokens.add(discountTokens);
       
     if(
-      (now >= presaleStart && now <= presaleEnd && presaleTokensLimit > tokensWithBonus) ||
-      (now >= firstRoundICOStart && now <= firstRoundICOEnd && firstRoundICOTokensLimit >  tokensWithBonus) ||
-      (now >= secondRoundICOStart && now <= secondRoundICOEnd && secondRoundICOTokensLimit > tokensWithBonus)
+      (isPresale() && presaleTokensLimit >= tokensWithBonus) ||
+      (isFirstRound() && firstRoundICOTokensLimit >=  tokensWithBonus) ||
+      (isSecondRound() && secondRoundICOTokensLimit >= tokensWithBonus)
     ){
       
       multisig.transfer(msg.value);
@@ -357,7 +356,11 @@ contract Crowdsale is owned, UNICToken {
         KYCLimit[_buyer] = KYCLimit[_buyer].sub(msg.value);
       }
 
-      if(now >= presaleStart && now <= presaleEnd) {
+
+
+
+
+      if (isPresale()) {
         
         presaleTokensLimit = presaleTokensLimit.sub(tokensWithBonus);
         
@@ -365,39 +368,39 @@ contract Crowdsale is owned, UNICToken {
           presaleWhitelistTokensLimit = presaleWhitelistTokensLimit.sub(tokensWithBonus);
         }
       
-        if(now >= presaleFemaleStart && now <= presaleFemaleEnd && Females[_buyer]) {
+        if(isFemaleSale() && Females[_buyer]) {
           presaleFemaleTokensLimit = presaleFemaleTokensLimit.sub(tokensWithBonus);
         }
 
-        if(now >= presalePiStart && now <= presalePiEnd) {
+        if(isPiSale()) {
           presalePiTokensLimit = presalePiTokensLimit.sub(tokensWithBonus);
         }
 
-      }
-      
-      if(now >= firstRoundICOStart && now <= firstRoundICOEnd){
+      } else if (isFirstRound()) {
 
         firstRoundICOTokensLimit = firstRoundICOTokensLimit.sub(tokensWithBonus);
         
-        if(now >= firstRoundWMStart && now <= firstRoundWMEnd) {
+        if(isWMSale()) {
           firstRoundWMTokensLimit = firstRoundWMTokensLimit.sub(tokensWithBonus);
         }
       
-        if(now >= firstRoundCosmosStart && now <= firstRoundCosmosEnd) {
+        if(isCosmosSale()) {
           firstRoundCosmosTokensLimit = firstRoundCosmosTokensLimit.sub(tokensWithBonus);
         }
 
-      }
-      
-      if(now >= secondRoundICOStart && now <= secondRoundICOEnd){
+      } else if (isSecondRound()) {
 
         secondRoundICOTokensLimit = secondRoundICOTokensLimit.sub(tokensWithBonus);
 
-        if(now >= secondRoundMayStart && now <= secondRoundMayEnd) {
+        if(isMaySale()) {
           secondRoundMayTokensLimit = secondRoundMayTokensLimit.sub(tokensWithBonus);
         }
 
       }
+
+
+
+
 
     }
 
