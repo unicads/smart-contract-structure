@@ -143,8 +143,6 @@ contract Crowdsale is owned, UNICToken {
   uint public constant secondRoundICODiscount = 10;
   uint public secondRoundICOTokensLimit = 43750000 * 10 ** uint256(decimals);
 
-/* <Marketing> */
-
   uint public constant presaleFemaleStart = 1520467200;       /** 08.03 */
   uint public constant presaleFemaleEnd = 1520553600;         /** 09.03 */
   uint public constant presaleFemaleDiscount = 88;
@@ -169,8 +167,6 @@ contract Crowdsale is owned, UNICToken {
   uint public constant secondRoundMayEnd = 1525219200;            /** 02.05 */
   uint public constant secondRoundMayDiscount = 15;
   uint public secondRoundMayTokensLimit = 1111111 * 10 ** uint256(decimals);
-
-/* </Marketing> */
 
   uint public etherRaised = 0;
   uint public tokensSold = 0;
