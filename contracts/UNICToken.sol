@@ -128,7 +128,7 @@ contract Crowdsale is owned, UNICToken {
   uint public constant presaleWhitelistDiscount = 40;
   uint public presaleWhitelistTokensLimit = 750000 * 10 ** uint256(decimals);
 
-  uint public constant presaleStart = 1514764800; /**1520503200;           /** 08.03 */
+  uint public constant presaleStart = 1520503200;           /** 08.03 */
   uint public constant presaleEnd = 1521453600;             /** 19.03 */
   uint public constant presaleDiscount = 30;
   uint public presaleTokensLimit = 5000000 * 10 ** uint256(decimals);
